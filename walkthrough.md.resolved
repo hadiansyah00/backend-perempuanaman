@@ -1,0 +1,545 @@
+# Complete Backend API Specification — PEREMPUAN AMAN
+
+## Overview
+
+This document maps **every feature** in the frontend to the REST API endpoints needed to make the site fully dynamic with admin login and content management.
+
+**Convention**: All endpoints return JSON. Protected endpoints require `Authorization: Bearer <token>`.
+
+```
+🔓 = Public (no auth)
+🔒 = Admin only (requires auth)
+```
+
+---
+
+## 1. Authentication & User Management
+
+No auth exists in the frontend yet — these endpoints power a new admin login system.
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/register` | 🔒 | Create new admin (super-admin only) |
+| POST | `/api/auth/login` | 🔓 | Login, returns JWT access + refresh tokens |
+| POST | `/api/auth/refresh` | 🔓 | Refresh expired access token |
+| GET | `/api/auth/me` | 🔒 | Get current user profile |
+| PUT | `/api/auth/me` | 🔒 | Update profile / password |
+| POST | `/api/auth/logout` | 🔒 | Invalidate refresh token |
+
+**Login request/response**:
+```json
+// POST /api/auth/login
+{ "email": "admin@perempuanaman.or.id", "password": "..." }
+
+// Response
+{
+  "accessToken": "eyJ...",
+  "refreshToken": "...",
+  "user": { "id": 1, "name": "Admin", "email": "...", "role": "admin" }
+}
+```
+
+---
+
+## 2. File / Media Upload
+
+Many resources reference images and PDFs. This is the centralized upload endpoint.
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/upload` | 🔒 | Upload image or PDF, returns URL |
+| DELETE | `/api/upload/:filename` | 🔒 | Delete an uploaded file |
+
+**Response**:
+```json
+{ "url": "/uploads/images/1708123456-photo.jpg", "filename": "1708123456-photo.jpg" }
+```
+
+> [!TIP]
+> For production, use cloud storage (S3, Google Cloud Storage, or Cloudinary) instead of local filesystem.
+
+---
+
+## 3. Berita / Catatan Perempuan Adat (Articles)
+
+**Source files**: [beritaData.js](file:///home/user/Documents/Github/frontend-perempuanaman/data/beritaData.js) — WordPress-like structure with HTML content
+
+**Frontend pages**: homepage [Berita](file:///home/user/Documents/Github/frontend-perempuanaman/components/Berita/Berita.js#4-130) section, `/publikasi/catatan`, `/publikasi/catatan/[slug]`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/berita` | 🔓 | List articles (paginated, searchable) |
+| GET | `/api/berita/:slug` | 🔓 | Single article by slug |
+| POST | `/api/berita` | 🔒 | Create new article |
+| PUT | `/api/berita/:id` | 🔒 | Update article |
+| DELETE | `/api/berita/:id` | 🔒 | Delete article |
+| GET | `/api/berita/categories` | 🔓 | List unique category names |
+
+**Query params**: `?search=`, `?category=`, `?tag=`, `?page=1`, `?per_page=9`, `?sort=date`
+
+**Data shape**:
+```json
+{
+  "id": 1001,
+  "slug": "perempuan-adat-nusantara-membangun-kedaulatan-pangan",
+  "title": "Perempuan Adat Nusantara Membangun...",
+  "date": "2024-05-12T10:00:00",
+  "categoryName": "Kedaulatan Pangan",
+  "tags": ["Ketahanan Pangan", "Krisis Iklim"],
+  "excerpt": "<p>Short summary HTML...</p>",
+  "content": "<p>Full article HTML...</p>",
+  "featuredImage": "/uploads/images/article-cover.jpg"
+}
+```
+
+**Paginated list response**:
+```json
+{
+  "data": [ /* array of articles */ ],
+  "meta": { "currentPage": 1, "totalPages": 5, "totalItems": 42, "perPage": 9 }
+}
+```
+
+> [!NOTE]
+> The current frontend uses a WordPress-like nested shape (`title.rendered`, `_embedded.wp:featuredmedia`). When building the backend, use the flat shape above and update the frontend to match — it's much simpler.
+
+---
+
+## 4. Audit & Laporan Keuangan (Financial Reports)
+
+**Source file**: [auditData.js](file:///home/user/Documents/Github/frontend-perempuanaman/data/auditData.js) — 7 reports with PDFs
+
+**Frontend pages**: `/kerja-kami/audit`, `/kerja-kami/audit/[slug]` (uses `FlipbookViewer`)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/audit` | 🔓 | List all audit documents |
+| GET | `/api/audit/:slug` | 🔓 | Single audit document |
+| POST | `/api/audit` | 🔒 | Create (with PDF upload) |
+| PUT | `/api/audit/:id` | 🔒 | Update |
+| DELETE | `/api/audit/:id` | 🔒 | Delete |
+
+**Data shape**:
+```json
+{
+  "id": 1,
+  "slug": "laporan-audit-2023",
+  "year": "2023",
+  "title": "Laporan Audit Independen 2023",
+  "description": "Laporan keuangan tahun anggaran 2023.",
+  "fileBerkas": "/uploads/docs/audit-2023.pdf"
+}
+```
+
+---
+
+## 5. Wilayah Organisasi (Regional Map & Statistics)
+
+**Source file**: [wilayahData.js](file:///home/user/Documents/Github/frontend-perempuanaman/data/wilayahData.js) — complex nested data (provinces → organizational units)
+
+**Frontend page**: `/wilayah` (interactive map with `WilayahMap`, `WilayahStats`, `WilayahList`)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/wilayah` | 🔓 | All provinces with metadata (for map rendering) |
+| GET | `/api/wilayah/:id` | 🔓 | Province detail + nested `wilayah_organisasi` |
+| POST | `/api/wilayah` | 🔒 | Add province |
+| PUT | `/api/wilayah/:id` | 🔒 | Update province |
+| DELETE | `/api/wilayah/:id` | 🔒 | Delete province |
+| POST | `/api/wilayah/:id/organisasi` | 🔒 | Add org unit within a province |
+| PUT | `/api/wilayah/:id/organisasi/:orgId` | 🔒 | Update org unit |
+| DELETE | `/api/wilayah/:id/organisasi/:orgId` | 🔒 | Delete org unit |
+
+**Province shape**:
+```json
+{
+  "id": "sumatera-utara",
+  "kodeProvinsi": "12",
+  "namaProvinsi": "Sumatera Utara",
+  "region": "Sumatera",
+  "geo": { "latitude": 2.115, "longitude": 99.545 },
+  "map": { "svgId": "ID-SU", "highlightColor": "#FF5733" },
+  "statistik": {
+    "totalAnggota": 15420,
+    "totalWilayahOrganisasi": 45,
+    "totalDesa": 120,
+    "totalKomunitas": 85
+  },
+  "statistikUsia": { "pemuda": 5200, "dewasa": 7100, "lansia": 2900 },
+  "wilayahOrganisasi": [
+    {
+      "id": "phd-tano-batak",
+      "jenis": "PHD",
+      "namaWilayah": "PHD Tano Batak",
+      "lokasi": { "kabupatenKota": "Toba", "kecamatan": "Balige", "desa": "..." },
+      "statistik": { "jumlahAnggota": 1250, "jumlahKomunitas": 12 },
+      "pengurus": { "ketua": "...", "sekretaris": "...", "bendahara": "..." },
+      "status": { "aktif": true, "tanggalBerdiri": "2015-08-12" }
+    }
+  ]
+}
+```
+
+---
+
+## 6. Capaian & Tujuan Strategis (Strategic Achievements)
+
+**Source file**: [capaianData.js](file:///home/user/Documents/Github/frontend-perempuanaman/data/capaianData.js) — 5 goals with dynamic table rows
+
+**Frontend page**: `/kerja-kami/capaian`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/capaian` | 🔓 | All strategic goals with tables |
+| GET | `/api/capaian/:id` | 🔓 | Single goal |
+| POST | `/api/capaian` | 🔒 | Create goal |
+| PUT | `/api/capaian/:id` | 🔒 | Update goal + table data |
+| DELETE | `/api/capaian/:id` | 🔒 | Delete goal |
+
+**Data shape**:
+```json
+{
+  "id": 1,
+  "title": "Tujuan Strategis 1",
+  "description": "...",
+  "table": {
+    "headers": ["Region", "Capaian", "Target"],
+    "rows": [{ "Region": "Sumatera", "Capaian": "...", "Target": "..." }]
+  }
+}
+```
+
+---
+
+## 7. Pustaka (Digital Library)
+
+**Source file**: [pustakaData.js](file:///home/user/Documents/Github/frontend-perempuanaman/data/pustakaData.js) — 6 books/publications with PDFs
+
+**Frontend pages**: `/publikasi/pustaka`, `/publikasi/pustaka/[slug]` (uses `FlipbookViewer`)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/pustaka` | 🔓 | List all publications |
+| GET | `/api/pustaka/:slug` | 🔓 | Single publication |
+| POST | `/api/pustaka` | 🔒 | Create |
+| PUT | `/api/pustaka/:id` | 🔒 | Update |
+| DELETE | `/api/pustaka/:id` | 🔒 | Delete |
+
+**Data shape**:
+```json
+{
+  "id": 1,
+  "slug": "community-action-global-impact",
+  "title": "Community Action Global Impact",
+  "description": "...",
+  "image": "/uploads/images/cover.jpg",
+  "pdfUrl": "/uploads/docs/book.pdf",
+  "publishedYear": 2023,
+  "pages": 45
+}
+```
+
+---
+
+## 8. Tutur Perempuan Adat (Podcasts)
+
+**Source file**: [tuturData.js](file:///home/user/Documents/Github/frontend-perempuanaman/data/tuturData.js) — 3 episodes with SoundCloud embeds
+
+**Frontend page**: `/publikasi/tutur`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/tutur` | 🔓 | List all episodes |
+| POST | `/api/tutur` | 🔒 | Create episode |
+| PUT | `/api/tutur/:id` | 🔒 | Update |
+| DELETE | `/api/tutur/:id` | 🔒 | Delete |
+
+**Data shape**:
+```json
+{
+  "id": 1,
+  "title": "Imajinasikan Dunia Yang Setara",
+  "coverImage": "/uploads/images/podcast-cover.jpg",
+  "audioEmbedHtml": "<iframe src='https://w.soundcloud.com/...'></iframe>",
+  "description": "..."
+}
+```
+
+---
+
+## 9. Galeri / Mata Perempuan Adat (Photo Gallery)
+
+**Source file**: [galleryData.js](file:///home/user/Documents/Github/frontend-perempuanaman/data/galleryData.js) — 8 photos
+
+**Frontend page**: `/publikasi/mata` (uses `GalleryGrid`)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/gallery` | 🔓 | List all (optionally `?category=`) |
+| POST | `/api/gallery` | 🔒 | Create (with image upload) |
+| PUT | `/api/gallery/:id` | 🔒 | Update |
+| DELETE | `/api/gallery/:id` | 🔒 | Delete |
+
+**Data shape**:
+```json
+{
+  "id": 1,
+  "title": "Panen Padi Tradisional",
+  "category": "Kedaulatan Pangan",
+  "src": "/uploads/images/gallery-photo.jpg",
+  "alt": "Descriptive alt text"
+}
+```
+
+---
+
+## 10. Alur Pembentukan (Formation Process)
+
+**Source file**: [alurData.js](file:///home/user/Documents/Github/frontend-perempuanaman/data/alurData.js) — 3 process categories (PHKom/PHD/PHW) + video
+
+**Frontend page**: `/kerja-kami/alur` (uses `AlurTabs`)
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/alur` | 🔓 | Full formation process data |
+| PUT | `/api/alur` | 🔒 | Update entire alur data |
+| PUT | `/api/alur/video` | 🔒 | Update the video URL |
+
+**Data shape**:
+```json
+{
+  "videoUrl": "https://youtube.com/embed/...",
+  "categories": [
+    {
+      "id": "phkom",
+      "title": "Alur Pembentukan PHKom",
+      "subtitle": "(Pengurus Harian Komunitas)",
+      "steps": [
+        { "id": 1, "title": "...", "icon": "fa-user-friends", "items": ["..."] }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 11. Pengurus Nasional (National Board)
+
+**Source**: Inline in [StrukturPengurus.js](file:///home/user/Documents/Github/frontend-perempuanaman/components/StrukturPengurus/StrukturPengurus.js) — 7 board members
+
+**Frontend pages**: `/tentang-kami/pengurus`, `/tentang-kami/struktur`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/pengurus` | 🔓 | List all board members |
+| POST | `/api/pengurus` | 🔒 | Add member |
+| PUT | `/api/pengurus/:id` | 🔒 | Update member |
+| DELETE | `/api/pengurus/:id` | 🔒 | Delete member |
+
+**Data shape**:
+```json
+{
+  "id": 1,
+  "name": "Meiliana Yumi",
+  "role": "Ketua Dewan Nasional Region Sumatera",
+  "image": "/uploads/images/pengurus-1.jpg",
+  "bio": "Meiliana Yumi aktif mengorganisir..."
+}
+```
+
+---
+
+## 12. Sekretariat Nasional (Staff)
+
+**Source**: Inline in [SekretariatGrid.js](file:///home/user/Documents/Github/frontend-perempuanaman/components/SekretariatGrid/SekretariatGrid.js) — 15 staff
+
+**Frontend page**: `/tentang-kami/sekretariat`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/sekretariat` | 🔓 | List all staff |
+| POST | `/api/sekretariat` | 🔒 | Add staff |
+| PUT | `/api/sekretariat/:id` | 🔒 | Update |
+| DELETE | `/api/sekretariat/:id` | 🔒 | Delete |
+
+**Data shape**: Same as pengurus ([id](file:///home/user/Documents/Github/frontend-perempuanaman/components/SekretariatGrid/SekretariatGrid.js#115-194), `name`, `role`, `image`, `bio`).
+
+---
+
+## 13. Programs / Kerja Kami
+
+**Source**: Inline in [kerja-kami/page.js](file:///home/user/Documents/Github/frontend-perempuanaman/app/kerja-kami/page.js) — 3 programs with details
+
+**Frontend page**: `/kerja-kami`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/programs` | 🔓 | List all programs |
+| POST | `/api/programs` | 🔒 | Add program |
+| PUT | `/api/programs/:id` | 🔒 | Update |
+| DELETE | `/api/programs/:id` | 🔒 | Delete |
+
+**Data shape**:
+```json
+{
+  "id": "penguatan",
+  "title": "Penguatan Organisasi Perempuan Adat",
+  "description": "...",
+  "details": ["Pelatihan kepemimpinan...", "..."]
+}
+```
+
+---
+
+## 14. Site Settings & Static Pages
+
+For pages with hardcoded content (Statuta, SOP, Donasi, homepage), create a general settings/pages API:
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/settings` | 🔓 | Site-wide config (bank details, contact info, social links) |
+| PUT | `/api/settings` | 🔒 | Update settings |
+| GET | `/api/pages/:slug` | 🔓 | Get CMS page content (statuta, sop, donasi) |
+| PUT | `/api/pages/:slug` | 🔒 | Update page content |
+
+**Settings shape** (for donasi page, sekretariat contact info, etc.):
+```json
+{
+  "siteName": "PEREMPUAN AMAN",
+  "contact": {
+    "address": "Jl. Tebet Timur Dalam No. 1A, Jakarta Selatan",
+    "email": "info@perempuanaman.or.id",
+    "phone": "+62 21 8293 7425",
+    "operatingHours": "Senin – Jumat, 09.00 – 17.00 WIB"
+  },
+  "donasi": {
+    "bankName": "Bank Mandiri",
+    "accountNumber": "123-456-7890",
+    "accountHolder": "Yayasan Perempuan Aman",
+    "confirmEmail": "donasi@perempuanaman.or.id"
+  },
+  "socialMedia": { "instagram": "...", "twitter": "...", "youtube": "..." }
+}
+```
+
+**Pages shape** (for statuta, sop):
+```json
+{
+  "slug": "statuta",
+  "title": "Statuta dan ART",
+  "content": "<p>HTML content...</p>",
+  "pdfUrl": "/uploads/docs/statuta.pdf"
+}
+```
+
+---
+
+## 15. Homepage Stats
+
+**Source**: Hardcoded in [page.js](file:///home/user/Documents/Github/frontend-perempuanaman/app/page.js) — `500+ Komunitas`, `18 Provinsi`, `20+ Tahun Aktif`
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/api/stats` | 🔓 | Aggregated homepage statistics |
+| PUT | `/api/stats` | 🔒 | Override stats manually |
+
+**Response**:
+```json
+{
+  "komunitas": "500+",
+  "provinsi": "18",
+  "tahunAktif": "20+"
+}
+```
+
+---
+
+## 16. Donasi (Donation Confirmations)
+
+**Frontend page**: `/donasi` — currently static
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/api/donasi` | 🔓 | Submit donation confirmation |
+| GET | `/api/donasi` | 🔒 | List all donation records (admin) |
+| PUT | `/api/donasi/:id/status` | 🔒 | Mark as verified/rejected |
+
+**Data shape**:
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "amount": 500000,
+  "transferDate": "2024-05-12",
+  "proofImage": "/uploads/images/bukti-transfer.jpg",
+  "status": "pending"
+}
+```
+
+---
+
+## Complete Endpoint Count
+
+| Category | GET | POST | PUT | DELETE | Total |
+|---|---|---|---|---|---|
+| Auth | 1 | 3 | 1 | — | **5** |
+| Upload | — | 1 | — | 1 | **2** |
+| Berita | 3 | 1 | 1 | 1 | **6** |
+| Audit | 2 | 1 | 1 | 1 | **5** |
+| Wilayah | 2 | 2 | 2 | 2 | **8** |
+| Capaian | 2 | 1 | 1 | 1 | **5** |
+| Pustaka | 2 | 1 | 1 | 1 | **5** |
+| Tutur | 1 | 1 | 1 | 1 | **4** |
+| Gallery | 1 | 1 | 1 | 1 | **4** |
+| Alur | 1 | — | 2 | — | **3** |
+| Pengurus | 1 | 1 | 1 | 1 | **4** |
+| Sekretariat | 1 | 1 | 1 | 1 | **4** |
+| Programs | 1 | 1 | 1 | 1 | **4** |
+| Settings/Pages | 2 | — | 2 | — | **4** |
+| Stats | 1 | — | 1 | — | **2** |
+| Donasi | 1 | 1 | 1 | — | **3** |
+| **Total** | | | | | **~68** |
+
+---
+
+## Implementation Priority
+
+### Phase 1 — Foundation (Build First)
+1. **Auth** — Login/JWT system
+2. **Upload** — File handling
+3. **Berita** — Largest, most complex content type
+4. **Wilayah** — Powers the interactive map
+
+### Phase 2 — Core Content
+5. **Pengurus** + **Sekretariat** — People profiles
+6. **Audit** + **Pustaka** — PDF document management
+7. **Capaian** — Strategic data tables
+
+### Phase 3 — Media & Extras
+8. **Gallery** — Photo management
+9. **Tutur** — Podcast episodes
+10. **Alur** — Formation process
+11. **Programs** — Kerja Kami content
+
+### Phase 4 — Polish
+12. **Settings/Pages** — CMS for static pages
+13. **Stats** — Homepage counters
+14. **Donasi** — Donation tracking
+
+---
+
+## Tech Stack Recommendation
+
+| Layer | Recommended |
+|---|---|
+| **Runtime** | Node.js (matches your Next.js frontend) |
+| **Framework** | Express.js or Fastify |
+| **Database** | PostgreSQL (relational data fits well) or MongoDB |
+| **ORM** | Prisma (PostgreSQL) or Mongoose (MongoDB) |
+| **Auth** | JWT (access + refresh tokens) with bcrypt |
+| **File Storage** | Local `/uploads` for dev → S3/Cloudinary for prod |
+| **Validation** | Joi or Zod |
+
+> [!IMPORTANT]
+> Since your frontend is Next.js, you could also use **Next.js API Routes** (`app/api/...`) to co-locate your backend with the frontend — eliminating CORS issues and simplifying deployment.

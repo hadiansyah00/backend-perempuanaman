@@ -1,0 +1,89 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Perempuan AMAN API",
+    "version": "1.0.0",
+    "description": "API Documentation for Perempuan AMAN Backend system built with Express.js and Sequelize."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/api/auth/login": {
+      "post": {
+        "summary": "Login User",
+        "tags": ["Authentication"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Successful login" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health Check",
+        "tags": ["System"],
+        "security": [],
+        "responses": {
+          "200": { "description": "System operational" }
+        }
+      }
+    },
+    "/api/heroes": {
+      "get": {
+        "summary": "Get all heroes",
+        "tags": ["Heroes"],
+        "security": [],
+        "responses": {
+          "200": { "description": "List of heroes" }
+        }
+      }
+    },
+    "/api/berita": {
+      "get": {
+        "summary": "Get paginated articles",
+        "tags": ["Berita"],
+        "security": [],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer" } },
+          { "name": "per_page", "in": "query", "schema": { "type": "integer" } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Paginated list of articles" }
+        }
+      }
+    }
+  }
+}
