@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const db = require('../models');
 const authenticate = require('../middleware/auth');
 const authorize = require('../middleware/role');
@@ -18,6 +19,36 @@ router.get('/', authenticate, authorize('super_admin'), async (req, res) => {
   }
 });
 
+// ─── POST /api/users ─── (Super Admin only)
+router.post('/', authenticate, authorize('super_admin'), async (req, res) => {
+  try {
+    const { name, email, role, avatar, password } = req.body;
+    
+    // Check if email already exists
+    const existingUser = await db.User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Email sudah terdaftar' });
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = await db.User.create({
+      name,
+      email,
+      role: role || 'user',
+      avatar,
+      password: hashedPassword,
+    });
+
+    res.status(201).json({ data: newUser.toJSON() });
+  } catch (err) {
+    console.error('Create user error:', err);
+    res.status(500).json({ error: 'Server error saat membuat user' });
+  }
+});
+
 // ─── PUT /api/users/:id ─── (Super Admin only)
 router.put('/:id', authenticate, authorize('super_admin'), async (req, res) => {
   try {
@@ -30,7 +61,11 @@ router.put('/:id', authenticate, authorize('super_admin'), async (req, res) => {
     if (email) updateData.email = email;
     if (role) updateData.role = role;
     if (avatar) updateData.avatar = avatar;
-    if (password) updateData.password = password;
+    
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      updateData.password = await bcrypt.hash(password, salt);
+    }
 
     await user.update(updateData);
     res.json({ data: user.toJSON() });

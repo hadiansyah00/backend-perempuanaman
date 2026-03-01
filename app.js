@@ -21,7 +21,7 @@ app.use(cors({
 // ─── Rate Limiting ───
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200,
+  max: 2000, // Increased for dev
   message: { error: 'Terlalu banyak request. Coba lagi nanti.' },
 });
 app.use('/api/', limiter);
@@ -78,6 +78,7 @@ app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/heroes', require('./routes/heroes'));
 app.use('/api/berita', require('./routes/berita'));
+app.use('/api/taxonomy', require('./routes/taxonomy'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/wilayah', require('./routes/wilayah'));
 app.use('/api/capaian', require('./routes/capaian'));

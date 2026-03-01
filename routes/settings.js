@@ -42,12 +42,16 @@ router.use(authorize('super_admin', 'admin', 'writer'));
 // PUT /api/settings/:key -> Update a setting
 router.put('/:key', async (req, res) => {
   try {
-    const setting = await SiteSetting.findOne({ where: { key: req.params.key } });
-    if (!setting) return res.status(404).json({ error: 'Pengaturan tidak ditemukan' });
-
+    let setting = await SiteSetting.findOne({ where: { key: req.params.key } });
+    
     // Ensure we are saving raw JSON object
     const value = req.body;
     
+    if (!setting) {
+      setting = await SiteSetting.create({ key: req.params.key, value });
+      return res.status(201).json({ message: `Setting ${req.params.key} created`, data: setting });
+    }
+
     await setting.update({ value });
     return res.json({ message: `Setting ${req.params.key} updated`, data: setting });
   } catch (error) {
