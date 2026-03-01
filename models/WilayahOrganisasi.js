@@ -43,6 +43,18 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       defaultValue: 0,
     },
+    pemuda: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    dewasa: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
+    lansia: {
+      type: DataTypes.INTEGER,
+      defaultValue: 0,
+    },
     ketua: {
       type: DataTypes.STRING,
     },
