@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const allowedOrigin = process.env.CORS_ORIGIN;
 
 const app = express();
 
@@ -13,8 +14,18 @@ const app = express();
 app.use(helmet());
 
 // ─── CORS ───
+
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow server-to-server or Postman (no origin)
+    if (!origin) return callback(null, true);
+
+    if (origin === allowedOrigin) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 
