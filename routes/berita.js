@@ -177,19 +177,36 @@ router.put('/:id', authenticate, authorize('super_admin', 'admin', 'writer'), as
 
     const { tags, ...beritaData } = req.body;
 
+    // Validate with the same schema as POST (but make title optional for partial updates)
+    const updateSchema = Joi.object({
+      title: Joi.string().min(5).max(500).optional(),
+      slug: Joi.string().optional(),
+      date: Joi.date().optional(),
+      categoryName: Joi.string().allow('', null).optional(),
+      excerpt: Joi.string().allow('', null).optional(),
+      content: Joi.string().allow('', null).optional(),
+      featuredImage: Joi.string().allow('', null).optional(),
+    });
+
+    const { error: validationError, value: validatedData } = updateSchema.validate(beritaData);
+    if (validationError) {
+      await t.rollback();
+      return res.status(400).json({ error: validationError.details[0].message });
+    }
+
     // Regenerate slug if title changed
-    if (beritaData.title && beritaData.title !== berita.title && !beritaData.slug) {
-      beritaData.slug = generateSlug(beritaData.title);
+    if (validatedData.title && validatedData.title !== berita.title && !validatedData.slug) {
+      validatedData.slug = generateSlug(validatedData.title);
       const existingSlug = await db.Berita.findOne({
-        where: { slug: beritaData.slug, id: { [Op.ne]: berita.id } },
+        where: { slug: validatedData.slug, id: { [Op.ne]: berita.id } },
         transaction: t,
       });
       if (existingSlug) {
-        beritaData.slug = beritaData.slug + '-' + Date.now();
+        validatedData.slug = validatedData.slug + '-' + Date.now();
       }
     }
 
-    await berita.update(beritaData, { transaction: t });
+    await berita.update(validatedData, { transaction: t });
 
     if (tags !== undefined) {
       await db.BeritaTag.destroy({ where: { beritaId: berita.id }, transaction: t });
