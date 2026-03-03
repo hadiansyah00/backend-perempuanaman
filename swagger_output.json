@@ -11,6 +11,16 @@
     "http"
   ],
   "paths": {
+    "/*path": {
+      "options": {
+        "description": "",
+        "responses": {
+          "default": {
+            "description": ""
+          }
+        }
+      }
+    },
     "/swagger.json": {
       "get": {
         "description": "",

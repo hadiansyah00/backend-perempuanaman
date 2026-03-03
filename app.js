@@ -21,9 +21,8 @@ const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
   : [];
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
-
     // Allow requests with no origin (Postman, server-to-server)
     if (!origin) return callback(null, true);
 
@@ -35,11 +34,13 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+};
+
+app.use(cors(corsOptions));
 
 // Handle preflight explicitly
-app.options('*', cors());
+app.options('/*path', cors(corsOptions));
 
 /* =====================================================
    RATE LIMITING
