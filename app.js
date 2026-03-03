@@ -6,63 +6,85 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-const allowedOrigin = process.env.CORS_ORIGIN;
 
 const app = express();
 
-// ─── Security ───
+/* =====================================================
+   SECURITY
+===================================================== */
 app.use(helmet());
 
-// ─── CORS ───
+/* =====================================================
+   CORS CONFIG (MULTI ORIGIN SUPPORT)
+===================================================== */
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : [];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow server-to-server or Postman (no origin)
+
+    // Allow requests with no origin (Postman, server-to-server)
     if (!origin) return callback(null, true);
 
-    if (origin === allowedOrigin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// ─── Rate Limiting ───
+// Handle preflight explicitly
+app.options('*', cors());
+
+/* =====================================================
+   RATE LIMITING
+===================================================== */
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 2000, // Increased for dev
+  windowMs: 15 * 60 * 1000,
+  max: process.env.NODE_ENV === 'production' ? 500 : 2000,
   message: { error: 'Terlalu banyak request. Coba lagi nanti.' },
 });
 app.use('/api/', limiter);
 
-// Auth-specific stricter rate limit
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
   message: { error: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },
 });
 
-// ─── Logging ───
-if (process.env.NODE_ENV !== 'production') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
+/* =====================================================
+   LOGGING
+===================================================== */
+app.use(
+  morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev')
+);
 
-// ─── Body Parsing ───
+/* =====================================================
+   BODY PARSER
+===================================================== */
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// ─── Static Files (uploads) ───
-// Override helmet's Cross-Origin-Resource-Policy for uploads so frontend (different port) can embed them
-app.use('/uploads', (req, res, next) => {
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-  next();
-}, express.static(path.join(__dirname, 'uploads')));
+/* =====================================================
+   STATIC FILES (UPLOADS)
+===================================================== */
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(path.join(__dirname, 'uploads'))
+);
 
-// ─── Swagger & ReDoc Documentation ───
+/* =====================================================
+   API DOCUMENTATION
+===================================================== */
 const swaggerUi = require('swagger-ui-express');
 const redoc = require('redoc-express');
 
@@ -70,21 +92,21 @@ let swaggerDocument = {};
 try {
   swaggerDocument = require('./swagger_output.json');
 } catch (err) {
-  console.warn('⚠️ swagger_output.json not found. Run "npm run swagger" to generate it.');
+  console.warn('⚠️ swagger_output.json not found.');
 }
 
-// 1. Swagger UI at /docs
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// 2. ReDoc at /redoc
 app.get('/swagger.json', (req, res) => res.json(swaggerDocument));
+
 app.get('/redoc', redoc({
   title: 'Perempuan AMAN API',
   specUrl: '/swagger.json',
-  redocOptions: { theme: { colors: { primary: { main: '#965596' } } } } // Matching the #965596 brand color
 }));
 
-// ─── Routes ───
+/* =====================================================
+   ROUTES
+===================================================== */
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/heroes', require('./routes/heroes'));
@@ -101,29 +123,41 @@ app.use('/api/mitra', require('./routes/mitra'));
 app.use('/api/gallery', require('./routes/gallery'));
 app.use('/api/settings', require('./routes/settings'));
 
-// ─── Health Check ───
+/* =====================================================
+   HEALTH CHECK
+===================================================== */
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
 });
 
-// ─── 404 Handler ───
+/* =====================================================
+   404 HANDLER
+===================================================== */
 app.use((req, res) => {
   res.status(404).json({ error: 'Endpoint tidak ditemukan' });
 });
 
-// ─── Error Handler ───
+/* =====================================================
+   GLOBAL ERROR HANDLER
+===================================================== */
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
-  
-  // Multer file size error
+  console.error('Unhandled error:', err.message);
+
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ error: 'Ukuran file terlalu besar. Maksimal 10MB.' });
+    return res.status(400).json({
+      error: 'Ukuran file terlalu besar. Maksimal 10MB.'
+    });
   }
-  
+
   res.status(err.status || 500).json({
-    error: process.env.NODE_ENV === 'production'
-      ? 'Internal Server Error'
-      : err.message,
+    error:
+      process.env.NODE_ENV === 'production'
+        ? 'Internal Server Error'
+        : err.message,
   });
 });
 
