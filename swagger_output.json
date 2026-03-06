@@ -386,6 +386,11 @@
             "type": "string"
           },
           {
+            "name": "year",
+            "in": "query",
+            "type": "string"
+          },
+          {
             "name": "page",
             "in": "query",
             "type": "string"
@@ -461,6 +466,19 @@
       }
     },
     "/api/berita/tags": {
+      "get": {
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/berita/years": {
       "get": {
         "description": "",
         "responses": {

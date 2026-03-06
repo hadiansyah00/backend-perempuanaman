@@ -23,7 +23,7 @@ const beritaSchema = Joi.object({
 // ─── GET /api/berita ─── (Public, paginated)
 router.get('/', async (req, res) => {
   try {
-    const { search, category, tag, page, per_page, sort } = req.query;
+    const { search, category, tag, year, page, per_page, sort } = req.query;
     const { limit, offset, getMeta } = paginate(page, per_page || 9);
 
     const where = {};
@@ -36,6 +36,12 @@ router.get('/', async (req, res) => {
     }
     if (category) {
       where.categoryName = category;
+    }
+    if (year) {
+      where.date = {
+        [Op.gte]: new Date(`${year}-01-01`),
+        [Op.lt]: new Date(`${parseInt(year) + 1}-01-01`),
+      };
     }
 
     // Build include
@@ -98,6 +104,20 @@ router.get('/tags', async (req, res) => {
     res.json({ data: tags.map((t) => t.tag).filter(Boolean) });
   } catch (err) {
     console.error('Get tags error:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ─── GET /api/berita/years ─── (Public)
+router.get('/years', async (req, res) => {
+  try {
+    const results = await db.sequelize.query(
+      `SELECT DISTINCT EXTRACT(YEAR FROM "date") as year FROM berita WHERE "date" IS NOT NULL ORDER BY year DESC`,
+      { type: db.Sequelize.QueryTypes.SELECT }
+    );
+    res.json({ data: results.map((r) => parseInt(r.year)).filter(Boolean) });
+  } catch (err) {
+    console.error('Get years error:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
