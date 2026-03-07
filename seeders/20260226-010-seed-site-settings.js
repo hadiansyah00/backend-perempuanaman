@@ -34,6 +34,11 @@ module.exports = {
         key: 'donasi',
         value: JSON.stringify(defaultDonasiData),
         description: 'Konten halaman Donasi, detail rekening, dan benefit'
+      },
+      {
+        key: 'sop',
+        value: JSON.stringify({ url: '/docs/SOP-Verifikasi-Anggota_Keorg_NEW.pdf' }),
+        description: 'URL dokumen SOP Verifikasi Anggota'
       }
     ];
 
