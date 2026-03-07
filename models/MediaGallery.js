@@ -8,7 +8,7 @@ module.exports = (sequelize) => {
       autoIncrement: true,
     },
     title: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
       allowNull: false,
     },
     category: {
@@ -18,10 +18,10 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING,
     },
     youtubeUrl: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
     },
     alt: {
-      type: DataTypes.STRING,
+      type: DataTypes.TEXT,
     },
     type: {
       type: DataTypes.ENUM('Photo', 'Video', 'Document'),
