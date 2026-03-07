@@ -26,9 +26,7 @@ router.get('/', async (req, res) => {
 router.get('/:key', async (req, res) => {
   try {
     const setting = await SiteSetting.findOne({ where: { key: req.params.key } });
-    if (!setting) {
-      return res.json({ data: null });
-    }
+    if (!setting) return res.status(404).json({ error: 'Data tidak ditemukan' });
     
     return res.json({ data: setting.value });
   } catch (error) {
