@@ -7,56 +7,56 @@ module.exports = {
       {
         title: "Panen Padi Tradisional",
         category: "Kedaulatan Pangan",
-        src: "/uploads/images/PAMAN_END_5D3_191027_RUL_0050-scaled.jpg",
+        src: "/images/PAMAN_END_5D3_191027_RUL_0050-scaled.jpg",
         alt: "Perempuan adat memanen padi dengan alat potong tradisional ani-ani di sawah",
         type: "Photo"
       },
       {
         title: "Pemetaan Wilayah Adat",
         category: "Advokasi & Kebijakan",
-        src: "/uploads/images/PAMAN_END_5D3_191027_RUL_0045-300x200.jpg",
+        src: "/images/PAMAN_END_5D3_191027_RUL_0045-300x200.jpg",
         alt: "Dialog pemetaan wilayah adat secara partisipatif bersama tetua kampung",
         type: "Photo"
       },
       {
         title: "Perlindungan Sumber Air Bersih",
         category: "Lingkungan & Ekologi",
-        src: "/uploads/images/PAMAN_END_5D3_191027_RUL_0042-300x200.jpg",
+        src: "/images/PAMAN_END_5D3_191027_RUL_0042-300x200.jpg",
         alt: "Sumber mata air jernih di kawasan lindung hutan adat",
         type: "Photo"
       },
       {
         title: "Konsolidasi Perempuan AMAN",
         category: "Pertemuan Nasional",
-        src: "/uploads/images/hero-home.png",
+        src: "/images/hero-home.png",
         alt: "Kegiatan konsolidasi dan musyawarah perempuan adat tingkat nasional",
         type: "Photo"
       },
       {
         title: "Ritual Doa Syukur Bumi",
         category: "Seni & Budaya",
-        src: "/uploads/images/PAMAN_END_5D3_191027_RUL_0050-scaled.jpg",
+        src: "/images/PAMAN_END_5D3_191027_RUL_0050-scaled.jpg",
         alt: "Prosesi ritual bersyukur atas limpahan panen tahunan",
         type: "Photo"
       },
       {
         title: "Pelatihan Paralegal Pemudi",
         category: "Pendidikan & Pelatihan",
-        src: "/uploads/images/PAMAN_END_5D3_191027_RUL_0045-300x200.jpg",
+        src: "/images/PAMAN_END_5D3_191027_RUL_0045-300x200.jpg",
         alt: "Diskusi aktif dalam sesi kelas pelatihan paralegal untuk kader perempuan",
         type: "Photo"
       },
       {
         title: "Merawat Hutan Tanaman Obat",
         category: "Kesehatan Komunal",
-        src: "/uploads/images/PAMAN_END_5D3_191027_RUL_0042-300x200.jpg",
+        src: "/images/PAMAN_END_5D3_191027_RUL_0042-300x200.jpg",
         alt: "Apotek hidup di pekarangan rumah komunal masyarakat adat",
         type: "Photo"
       },
       {
         title: "Kedaulatan Benih Lokal",
         category: "Kedaulatan Pangan",
-        src: "/uploads/images/PAMAN_END_5D3_191027_RUL_0050-scaled.jpg",
+        src: "/images/PAMAN_END_5D3_191027_RUL_0050-scaled.jpg",
         alt: "Tumpukan benih padi varietas lokal nusantara",
         type: "Photo"
       }

@@ -39,6 +39,16 @@ module.exports = {
         key: 'sop',
         value: JSON.stringify({ url: '/docs/SOP-Verifikasi-Anggota_Keorg_NEW.pdf' }),
         description: 'URL dokumen SOP Verifikasi Anggota'
+      },
+      {
+        key: 'statuta',
+        value: JSON.stringify({ url: '/docs/1.-STATUTA-PEREMPUAN-AMAN-2021-2026_Rev.pdf' }),
+        description: 'URL dokumen Statuta'
+      },
+      {
+        key: 'art',
+        value: JSON.stringify({ url: '/docs/2.-ART-Perempuan-AMAN-2021-2026_Rev.pdf' }),
+        description: 'URL dokumen ART'
       }
     ];
 

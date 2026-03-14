@@ -132,7 +132,7 @@ app.use('/api/mitra', require('./routes/mitra'));
 app.use('/api/gallery', require('./routes/gallery'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/analytics', require('./routes/analytics'));
-
+app.use('/api/dashboard', require('./routes/dashboard'));
 /* =====================================================
    HEALTH CHECK
 ===================================================== */
