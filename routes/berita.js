@@ -61,6 +61,7 @@ router.get('/', async (req, res) => {
     const order = [['date', sort === 'asc' ? 'ASC' : 'DESC']];
 
     const { count, rows } = await db.Berita.findAndCountAll({
+      attributes: { exclude: ['content'] },
       where,
       include,
       order,

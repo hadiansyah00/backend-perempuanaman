@@ -36,6 +36,20 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// GET /api/wilayah/organisasi/:orgId -> Get single organization (PHD/PHKom) by ID or Slug
+router.get('/organisasi/:orgId', async (req, res) => {
+  try {
+    const org = await WilayahOrganisasi.findByPk(req.params.orgId, {
+      include: [{ model: Provinsi, as: 'provinsi' }]
+    });
+    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+    return res.json({ data: org });
+  } catch (error) {
+    console.error('Fetch single organisasi error:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Admin routes below
 router.use(authenticate);
 router.use(authorize('super_admin', 'admin', 'writer'));
@@ -78,6 +92,56 @@ router.post('/:id/organisasi', async (req, res) => {
     return res.status(201).json({ message: 'Organisasi created', data: org });
   } catch (error) {
     console.error('Create organisasi error:', error);
+    return res.status(500).json({ error: 'Server error', details: error.message });
+  }
+});
+
+// POST /api/wilayah/:id/organisasi/batch -> Batch create multiple organizational units
+router.post('/:id/organisasi/batch', async (req, res) => {
+  const sequelize = Provinsi.sequelize;
+  const transaction = await sequelize.transaction();
+
+  try {
+    const prov = await Provinsi.findByPk(req.params.id);
+    if (!prov) {
+      await transaction.rollback();
+      return res.status(404).json({ error: 'Provinsi tidak ditemukan' });
+    }
+
+    const { items } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      await transaction.rollback();
+      return res.status(400).json({ error: 'Field "items" harus berupa array yang tidak kosong' });
+    }
+
+    // Validate each item
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (!item.kodeWilayah || !item.jenis || !item.namaWilayah) {
+        await transaction.rollback();
+        return res.status(400).json({
+          error: `Item ke-${i + 1}: kodeWilayah, jenis, dan namaWilayah wajib diisi`
+        });
+      }
+    }
+
+    const records = items.map(item => ({
+      ...item,
+      provinsiId: prov.id,
+      // Auto-generate ID if not provided
+      id: item.id || item.namaWilayah.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    }));
+
+    const created = await WilayahOrganisasi.bulkCreate(records, { transaction });
+    await transaction.commit();
+
+    return res.status(201).json({
+      message: `${created.length} organisasi berhasil ditambahkan`,
+      data: created
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Batch create organisasi error:', error);
     return res.status(500).json({ error: 'Server error', details: error.message });
   }
 });

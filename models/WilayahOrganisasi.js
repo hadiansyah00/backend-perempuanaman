@@ -71,6 +71,26 @@ module.exports = (sequelize) => {
     tanggalBerdiri: {
       type: DataTypes.DATEONLY,
     },
+    deskripsiProfil: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    ringkasanProfil: {
+      type: DataTypes.STRING(500),
+      allowNull: true,
+    },
+    galeriFoto: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      get() {
+        const raw = this.getDataValue('galeriFoto');
+        if (!raw) return [];
+        try { return JSON.parse(raw); } catch { return []; }
+      },
+      set(val) {
+        this.setDataValue('galeriFoto', Array.isArray(val) ? JSON.stringify(val) : val);
+      },
+    },
   }, {
     tableName: 'wilayah_organisasi',
     timestamps: true,
