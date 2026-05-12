@@ -1,5 +1,4 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const db = require('../models');
 const authenticate = require('../middleware/auth');
 const authorize = require('../middleware/role');
@@ -30,16 +29,13 @@ router.post('/', authenticate, authorize('super_admin'), async (req, res) => {
       return res.status(400).json({ error: 'Email sudah terdaftar' });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
+    // Password will be hashed automatically by User model's beforeCreate hook
     const newUser = await db.User.create({
       name,
       email,
       role: role || 'user',
       avatar,
-      password: hashedPassword,
+      password,
     });
 
     res.status(201).json({ data: newUser.toJSON() });
@@ -63,8 +59,8 @@ router.put('/:id', authenticate, authorize('super_admin'), async (req, res) => {
     if (avatar) updateData.avatar = avatar;
     
     if (password) {
-      const salt = await bcrypt.genSalt(10);
-      updateData.password = await bcrypt.hash(password, salt);
+      // Password will be hashed automatically by User model's beforeUpdate hook
+      updateData.password = password;
     }
 
     await user.update(updateData);

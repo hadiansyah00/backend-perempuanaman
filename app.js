@@ -5,7 +5,9 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const compression = require('compression');
 const path = require('path');
+const { publicCache, noCache } = require('./middleware/cache');
 
 const app = express();
 
@@ -13,6 +15,19 @@ const app = express();
    SECURITY
 ===================================================== */
 app.use(helmet());
+
+/* =====================================================
+   COMPRESSION (gzip/brotli)
+===================================================== */
+app.use(compression({
+  level: 6,
+  threshold: 1024, // Only compress responses > 1KB
+  filter: (req, res) => {
+    // Don't compress if client doesn't accept it
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
+}));
 
 /* =====================================================
    CORS CONFIG (MULTI ORIGIN SUPPORT)
@@ -52,14 +67,6 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-// Prevent browser from caching API responses
-app.use('/api', (req, res, next) => {
-  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.set('Pragma', 'no-cache');
-  res.set('Expires', '0');
-  next();
-});
-
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 20,
@@ -86,6 +93,8 @@ app.use(
   '/uploads',
   (req, res, next) => {
     res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    // Cache uploaded media for 1 day
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=86400');
     next();
   },
   express.static(path.join(__dirname, 'uploads'))
@@ -114,25 +123,31 @@ app.get('/redoc', redoc({
 }));
 
 /* =====================================================
-   ROUTES
+   ROUTES — PRIVATE (no-cache)
+   Auth, dashboard, users, analytics stats
 ===================================================== */
-app.use('/api/auth', authLimiter, require('./routes/auth'));
-app.use('/api/upload', require('./routes/upload'));
-app.use('/api/heroes', require('./routes/heroes'));
-app.use('/api/berita', require('./routes/berita'));
-app.use('/api/taxonomy', require('./routes/taxonomy'));
-app.use('/api/users', require('./routes/users'));
-app.use('/api/wilayah', require('./routes/wilayah'));
-app.use('/api/capaian', require('./routes/capaian'));
-app.use('/api/audit', require('./routes/audit'));
-app.use('/api/pustaka', require('./routes/pustaka'));
-app.use('/api/suara-perempuan', require('./routes/suaraprm'));
-app.use('/api/pengurus', require('./routes/pengurus'));
-app.use('/api/mitra', require('./routes/mitra'));
-app.use('/api/gallery', require('./routes/gallery'));
-app.use('/api/settings', require('./routes/settings'));
+app.use('/api/auth', authLimiter, noCache, require('./routes/auth'));
+app.use('/api/users', noCache, require('./routes/users'));
+app.use('/api/dashboard', noCache, require('./routes/dashboard'));
+app.use('/api/upload', noCache, require('./routes/upload'));
+
+/* =====================================================
+   ROUTES — PUBLIC (cacheable)
+   Content endpoints that serve the public website
+===================================================== */
+app.use('/api/heroes', publicCache(120), require('./routes/heroes'));
+app.use('/api/berita', publicCache(60, 120), require('./routes/berita'));
+app.use('/api/taxonomy', publicCache(120), require('./routes/taxonomy'));
+app.use('/api/wilayah', publicCache(120), require('./routes/wilayah'));
+app.use('/api/capaian', publicCache(300), require('./routes/capaian'));
+app.use('/api/audit', publicCache(300), require('./routes/audit'));
+app.use('/api/pustaka', publicCache(120), require('./routes/pustaka'));
+app.use('/api/suara-perempuan', publicCache(120), require('./routes/suaraprm'));
+app.use('/api/pengurus', publicCache(300), require('./routes/pengurus'));
+app.use('/api/mitra', publicCache(300), require('./routes/mitra'));
+app.use('/api/gallery', publicCache(120), require('./routes/gallery'));
+app.use('/api/settings', publicCache(300), require('./routes/settings'));
 app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/dashboard', require('./routes/dashboard'));
 /* =====================================================
    HEALTH CHECK
 ===================================================== */

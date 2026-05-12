@@ -1,9 +1,11 @@
 const express = require("express");
 const router = express.Router();
+const authenticate = require("../middleware/auth");
+const authorize = require("../middleware/role");
 
 const { getDashboardStats } = require("../utils/dashboardStats");
 
-router.get("/stats", async (req, res) => {
+router.get("/stats", authenticate, authorize('super_admin', 'admin'), async (req, res) => {
 
   try {
 
